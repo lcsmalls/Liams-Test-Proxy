@@ -4,7 +4,6 @@
 const WHITELIST = {
   'compendium': 'https://compendiumofeverything.org',
   'example': 'https://example.com'
-  'testersite': 'https://pornhub.com'
 };
 
 export default async function handler(req, res) {
