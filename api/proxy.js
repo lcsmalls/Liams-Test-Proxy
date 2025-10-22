@@ -3,7 +3,8 @@ export default async function handler(req, res) {
   const WHITELIST = {
     'compendium': 'https://compendiumofeverything.org',
     'example': 'https://example.com',
-    'cdn': 'https://cdn.compendiumofeverything.org'
+    'cdn': 'https://cdn.compendiumofeverything.org',
+    'youtube': 'https://www.youtube.com/embed/'  // only embeds
   };
 
   const key = req.query.url;
@@ -12,6 +13,18 @@ export default async function handler(req, res) {
   }
 
   const path = req.query.path || '';
+
+  // Special rule for YouTube: only allow simple video IDs
+  if (key === 'youtube') {
+    if (!path.match(/^[\w-]+$/)) {
+      return res.status(400).json({ error: 'Invalid YouTube video ID' });
+    }
+    const embedUrl = WHITELIST[key] + path;
+    // Redirect iframe directly to the embed URL
+    res.redirect(embedUrl);
+    return;
+  }
+
   const targetUrl = WHITELIST[key] + path;
 
   try {
@@ -23,18 +36,16 @@ export default async function handler(req, res) {
     });
 
     let body = await response.text();
-
-    // Only rewrite URLs for HTML content
     const contentType = response.headers.get('content-type') || '';
+
+    // Rewrite CDN URLs to go through proxy
     if (contentType.includes('text/html')) {
-      // Rewrite all URLs pointing to your CDN so they go through the proxy
       body = body.replace(
         /https:\/\/cdn\.compendiumofeverything\.org(\/[^\s'"]*)/g,
         '/api/proxy?url=cdn&path=$1'
       );
     }
 
-    // Strip headers that block embedding
     res.setHeader('X-Frame-Options', '');
     res.setHeader('Content-Security-Policy', '');
     res.setHeader('Content-Type', contentType);
