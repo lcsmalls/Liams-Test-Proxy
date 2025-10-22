@@ -1,14 +1,13 @@
 // api/proxy.js
-import fetch from 'node-fetch';
+// import fetch from 'node-fetch';  ← remove this line
 
-// Only allow these keys
 const WHITELIST = {
   'compendium': 'https://compendiumofeverything.org',
   'example': 'https://example.com'
 };
 
 export default async function handler(req, res) {
-  const key = req.query.url; // whitelist key
+  const key = req.query.url;
   if (!key || !WHITELIST[key]) {
     return res.status(400).json({ error: 'Invalid or missing URL key' });
   }
@@ -25,10 +24,8 @@ export default async function handler(req, res) {
 
     let body = await response.text();
 
-    // Strip headers that block embedding
     res.setHeader('X-Frame-Options', '');
     res.setHeader('Content-Security-Policy', ""); 
-
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
 
