@@ -7,7 +7,7 @@
 <style>
 body { font-family: system-ui, sans-serif; margin:0; padding:12px; background:#f7f7fb; }
 header { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-select, button { padding:6px 10px; font-size:14px; }
+select, input, button { padding:6px 10px; font-size:14px; }
 #frameWrap { border:1px solid #ddd; height:75vh; position:relative; background:white; }
 iframe { width:100%; height:100%; border:0; display:block; }
 .message { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; text-align:center; color:#666; }
@@ -20,7 +20,10 @@ iframe { width:100%; height:100%; border:0; display:block; }
 <select id="url">
   <option value="compendium">compendiumofeverything.org</option>
   <option value="example">example.com</option>
+  <option value="youtube">YouTube Embed</option>
 </select>
+<label for="videoId" id="vidLabel" style="display:none;">Video ID:</label>
+<input type="text" id="videoId" style="display:none;" placeholder="e.g. dQw4w9WgXcQ">
 <button id="load">Load</button>
 <button id="open">Open in new tab</button>
 </header>
@@ -34,14 +37,35 @@ iframe { width:100%; height:100%; border:0; display:block; }
 
 <script>
 const sel = document.getElementById('url');
+const videoInput = document.getElementById('videoId');
+const vidLabel = document.getElementById('vidLabel');
 const btn = document.getElementById('load');
 const openBtn = document.getElementById('open');
 const iframe = document.getElementById('viewer');
 const blockedMsg = document.getElementById('blockedMsg');
 
-function loadSite(key) {
+function updateInputs() {
+  if (sel.value === 'youtube') {
+    videoInput.style.display = '';
+    vidLabel.style.display = '';
+  } else {
+    videoInput.style.display = 'none';
+    vidLabel.style.display = 'none';
+  }
+}
+
+function loadSite() {
   blockedMsg.style.display = 'none';
-  iframe.src = `/api/proxy?url=${key}`;
+  let key = sel.value;
+  let path = '';
+  if (key === 'youtube') {
+    path = videoInput.value.trim();
+    if (!path) {
+      alert('Please enter a YouTube video ID.');
+      return;
+    }
+  }
+  iframe.src = `/api/proxy?url=${key}&path=${path}`;
 
   iframe.onload = () => {
     try {
@@ -54,19 +78,27 @@ function loadSite(key) {
   };
 }
 
-// initial load
-loadSite(sel.value);
-
-btn.addEventListener('click', () => loadSite(sel.value));
+sel.addEventListener('change', updateInputs);
+btn.addEventListener('click', loadSite);
 
 openBtn.addEventListener('click', () => {
-  const key = sel.value;
-  const urlMap = {
+  let key = sel.value;
+  let urlMap = {
     'compendium': 'https://compendiumofeverything.org',
     'example': 'https://example.com'
   };
-  window.open(urlMap[key], '_blank', 'noopener');
+  if (key === 'youtube') {
+    let vid = videoInput.value.trim();
+    if (!vid) { alert('Enter a video ID'); return; }
+    window.open(`https://www.youtube.com/embed/${vid}`, '_blank', 'noopener');
+  } else {
+    window.open(urlMap[key], '_blank', 'noopener');
+  }
 });
+
+// initial load
+updateInputs();
+loadSite();
 </script>
 
 </body>
