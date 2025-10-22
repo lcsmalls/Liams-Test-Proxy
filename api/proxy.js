@@ -4,7 +4,9 @@ export default async function handler(req, res) {
     'compendium': 'https://compendiumofeverything.org',
     'example': 'https://example.com',
     'cdn': 'https://cdn.compendiumofeverything.org',
-    'youtube': 'https://www.youtube.com/embed/'  // only embeds
+    'youtube': 'https://www.youtube.com/embed/', // YouTube embed
+    'pornhubA': 'https://www.pornhub.com/embed/', // Option A
+    'pornhubB': 'https://www.pornhub.com/embed/view_video.php?viewkey=' // Option B
   };
 
   const key = req.query.url;
@@ -12,21 +14,37 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid or missing URL key' });
   }
 
-  const path = req.query.path || '';
+  const path = (req.query.path || '').trim();
 
-  // Special rule for YouTube: only allow simple video IDs
+  // YouTube embed
   if (key === 'youtube') {
-    if (!path.match(/^[\w-]+$/)) {
+    if (!/^[\w-]+$/.test(path)) {
       return res.status(400).json({ error: 'Invalid YouTube video ID' });
     }
-    const embedUrl = WHITELIST[key] + path;
-    // Redirect iframe directly to the embed URL
-    res.redirect(embedUrl);
+    res.redirect(WHITELIST[key] + path);
     return;
   }
 
-  const targetUrl = WHITELIST[key] + path;
+  // Pornhub Option A
+  if (key === 'pornhubA') {
+    if (!/^[A-Za-z0-9_-]+$/.test(path)) {
+      return res.status(400).json({ error: 'Invalid Pornhub viewkey' });
+    }
+    res.redirect(WHITELIST[key] + path);
+    return;
+  }
 
+  // Pornhub Option B
+  if (key === 'pornhubB') {
+    if (!/^[A-Za-z0-9_-]+$/.test(path)) {
+      return res.status(400).json({ error: 'Invalid Pornhub viewkey' });
+    }
+    res.redirect(WHITELIST[key] + encodeURIComponent(path));
+    return;
+  }
+
+  // Normal proxy for HTML/CDN
+  const targetUrl = WHITELIST[key] + path;
   try {
     const response = await fetch(targetUrl, {
       headers: {
@@ -38,7 +56,6 @@ export default async function handler(req, res) {
     let body = await response.text();
     const contentType = response.headers.get('content-type') || '';
 
-    // Rewrite CDN URLs to go through proxy
     if (contentType.includes('text/html')) {
       body = body.replace(
         /https:\/\/cdn\.compendiumofeverything\.org(\/[^\s'"]*)/g,
