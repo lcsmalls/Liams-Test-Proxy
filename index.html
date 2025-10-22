@@ -6,9 +6,9 @@
 <title>Site Sandbox Viewer</title>
 <style>
 body { font-family: system-ui, sans-serif; margin:0; padding:12px; background:#f7f7fb; }
-header { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+header { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
 select, input, button { padding:6px 10px; font-size:14px; }
-#frameWrap { border:1px solid #ddd; height:75vh; position:relative; background:white; }
+#frameWrap { border:1px solid #ddd; height:75vh; position:relative; background:white; flex:1 1 100%; }
 iframe { width:100%; height:100%; border:0; display:block; }
 .message { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; text-align:center; color:#666; }
 </style>
@@ -21,9 +21,11 @@ iframe { width:100%; height:100%; border:0; display:block; }
   <option value="compendium">compendiumofeverything.org</option>
   <option value="example">example.com</option>
   <option value="youtube">YouTube Embed</option>
+  <option value="pornhubA">Pornhub Embed (Option A)</option>
+  <option value="pornhubB">Pornhub Embed (Option B)</option>
 </select>
-<label for="videoId" id="vidLabel" style="display:none;">Video ID:</label>
-<input type="text" id="videoId" style="display:none;" placeholder="e.g. dQw4w9WgXcQ">
+<label for="videoId" id="vidLabel" style="display:none;">Video ID / Viewkey:</label>
+<input type="text" id="videoId" style="display:none;" placeholder="e.g. dQw4w9WgXcQ or 686b93f2c3e3d">
 <button id="load">Load</button>
 <button id="open">Open in new tab</button>
 </header>
@@ -32,7 +34,7 @@ iframe { width:100%; height:100%; border:0; display:block; }
   <div id="blockedMsg" class="message" style="display:none;">
     This site could not be embedded.<br>Click 'Open in new tab' to view it directly.
   </div>
-  <iframe id="viewer"></iframe>
+  <iframe id="viewer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
 
 <script>
@@ -45,7 +47,7 @@ const iframe = document.getElementById('viewer');
 const blockedMsg = document.getElementById('blockedMsg');
 
 function updateInputs() {
-  if (sel.value === 'youtube') {
+  if (['youtube','pornhubA','pornhubB'].includes(sel.value)) {
     videoInput.style.display = '';
     vidLabel.style.display = '';
   } else {
@@ -56,16 +58,13 @@ function updateInputs() {
 
 function loadSite() {
   blockedMsg.style.display = 'none';
-  let key = sel.value;
-  let path = '';
-  if (key === 'youtube') {
-    path = videoInput.value.trim();
-    if (!path) {
-      alert('Please enter a YouTube video ID.');
-      return;
-    }
+  const key = sel.value;
+  const path = videoInput.value.trim();
+  if (['youtube','pornhubA','pornhubB'].includes(key) && !path) {
+    alert('Please enter a video ID / viewkey.');
+    return;
   }
-  iframe.src = `/api/proxy?url=${key}&path=${path}`;
+  iframe.src = `/api/proxy?url=${key}&path=${encodeURIComponent(path)}`;
 
   iframe.onload = () => {
     try {
@@ -82,15 +81,18 @@ sel.addEventListener('change', updateInputs);
 btn.addEventListener('click', loadSite);
 
 openBtn.addEventListener('click', () => {
-  let key = sel.value;
-  let urlMap = {
+  const key = sel.value;
+  const path = videoInput.value.trim();
+  const urlMap = {
     'compendium': 'https://compendiumofeverything.org',
     'example': 'https://example.com'
   };
   if (key === 'youtube') {
-    let vid = videoInput.value.trim();
-    if (!vid) { alert('Enter a video ID'); return; }
-    window.open(`https://www.youtube.com/embed/${vid}`, '_blank', 'noopener');
+    window.open(`https://www.youtube.com/embed/${path}`, '_blank', 'noopener');
+  } else if (key === 'pornhubA') {
+    window.open(`https://www.pornhub.com/embed/${path}`, '_blank', 'noopener');
+  } else if (key === 'pornhubB') {
+    window.open(`https://www.pornhub.com/embed/view_video.php?viewkey=${encodeURIComponent(path)}`, '_blank', 'noopener');
   } else {
     window.open(urlMap[key], '_blank', 'noopener');
   }
@@ -101,5 +103,5 @@ updateInputs();
 loadSite();
 </script>
 
-</body> 
+</body>
 </html>
